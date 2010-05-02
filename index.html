@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Chat</title>
+		<style type="text/css">
+		body {
+			font-family: Helvetica, Arial, sans-serif;
+			font-size: 0.9em;
+		}
+		.welcome #connecting {
+			font-size: 1.3em;
+		}
+		</style>
+	</head>
+	<body>
+		<h2>Graffiti Board</h2>
+		
+		<div class="welcome section">
+			<p>Welcome to the Graffiti Board. Almost all HTML tags are unfiltered. Have fun.</p>
+			<p id="connecting"></p>
+		</div>
+		
+		<div class="post section">
+			<form action="/post" method="GET" class="post_form" id="post_form">
+				<input type="text" name="text" id="post_text" class="post_text" size="100" />
+				<input type="submit" class="post_form" value="Post" />
+			</form>
+		</div>
+		
+		<div class="messages section" id="messages">
+			
+		</div>
+		
+		<script type="text/javascript" src="jquery.js"></script>
+		<script type="text/javascript" src="jquery.form.js"></script>
+		<script type="text/javascript">
+		$(function() {
+			$("#post_form").ajaxForm(function() {
+				$("#post_text").val("");
+			});
+			
+			var chat = {
+				latest_message: 1,
+				
+				request: function() {
+					$.ajax({
+						url: '/recv?since=' + this.latest_message,
+						dataType: 'json',
+						success: $.proxy(this.callback, this),
+						error: this.error
+					});
+				},
+				
+				callback: function(data) {
+					$("#connecting").html("");
+					
+					if( data == null ) { this.error(); return; }
+					
+					$.each(data.messages, $.proxy(function(i, obj) {
+						$("#messages").html($("#messages").html() + "<p>" + obj.text + "</p>\n");
+						
+						if(this.latest_message < obj.timestamp)
+							this.latest_message = obj.timestamp;
+					}, this));
+					
+					this.request();
+				},
+				
+				error: function() {
+					window.console.log("oops");
+					$("#connecting").html("Reconnecting, please wait...");
+					setTimeout($.proxy(this.request, this), 2000);
+				}
+			};
+			
+			chat.request();
+		});
+		</script>
+	</body>
+</html>
